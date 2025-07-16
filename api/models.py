@@ -27,3 +27,12 @@ class Post(models.Model):
     def __str__(self):
         return f"{self.title} - {self.author.username}"
 
+
+class AnonymousPost(models.Model):
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='anonymous_posts')
+    neighborhood = models.ForeignKey(Neighborhood, on_delete=models.CASCADE, related_name='anonymous_posts')
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"AnonymousPost in {self.neighborhood.name} at {self.created_at.strftime('%Y-%m-%d %H:%M')}"

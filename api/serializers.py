@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Post
+from .models import User, Post, AnonymousPost
 from django.contrib.auth.password_validation import validate_password
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -36,4 +36,11 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         fields = ['id', 'title', 'content', 'author', 'neighborhood', 'created_at']
         read_only_fields = ['id', 'author', 'neighborhood', 'created_at']
+
+
+class AnonymousPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnonymousPost
+        fields = ['id', 'message', 'neighborhood', 'created_at']
+        read_only_fields = ['id', 'neighborhood', 'created_at']
 

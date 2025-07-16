@@ -1,6 +1,6 @@
-from .models import User, Post
+from .models import User, Post, AnonymousPost
 from rest_framework import generics, permissions, viewsets
-from .serializers import RegisterSerializer, UserProfileSerializer, PostSerializer
+from .serializers import RegisterSerializer, UserProfileSerializer, PostSerializer, AnonymousPostSerializer
 
 
 
@@ -30,3 +30,18 @@ class PostViewSet(viewsets.ModelViewSet):
         # Automatically assign the post to the logged-in user and their neighborhood
         serializer.save(author=self.request.user, neighborhood=self.request.user.neighborhood)
 
+
+class AnonymousPostViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = AnonymousPostSerializer
+
+    def get_queryset(self):
+        return AnonymousPost.objects.filter(
+            neighborhood=self.request.user.neighborhood
+        ).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(
+            author=self.request.user,
+            neighborhood=self.request.user.neighborhood
+        )
