@@ -1,6 +1,6 @@
-from .models import User
-from rest_framework import generics, permissions
-from .serializers import RegisterSerializer, UserProfileSerializer
+from .models import User, Post
+from rest_framework import generics, permissions, viewsets
+from .serializers import RegisterSerializer, UserProfileSerializer, PostSerializer
 
 
 
@@ -15,4 +15,18 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class PostViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PostSerializer
+
+    def get_queryset(self):
+        # Show only posts from the user's neighborhood
+        user = self.request.user
+        return Post.objects.filter(neighborhood=user.neighborhood).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        # Automatically assign the post to the logged-in user and their neighborhood
+        serializer.save(author=self.request.user, neighborhood=self.request.user.neighborhood)
 
