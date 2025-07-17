@@ -57,7 +57,7 @@ class HelpExchangeSerializer(serializers.ModelSerializer):
 
 
 class BusinessSerializer(serializers.ModelSerializer):
-    owner = serializers.ReadOnlyField(source='owner.username')
+    total_likes = serializers.IntegerField(source='total_likes', read_only=True)
 
     class Meta:
         model = Business

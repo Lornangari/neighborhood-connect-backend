@@ -1,7 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.contrib.auth.models import User  
+from django.contrib.auth.models import User 
 from django.conf import settings
+from django.contrib.auth import get_user_model
+
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -67,18 +69,19 @@ class HelpExchange(models.Model):
         return f"{self.type.capitalize()} - {self.title} by {self.user.username}"
 
 
+
+User = get_user_model()
+
 class Business(models.Model):
     name = models.CharField(max_length=100)
-    business_type = models.CharField(max_length=50)
-    description = models.TextField(blank=True)
-    contact_email = models.EmailField()
-    phone = models.CharField(max_length=20, blank=True)
-    address = models.CharField(max_length=200, blank=True)
-    
-    neighborhood = models.ForeignKey(Neighborhood, on_delete=models.CASCADE, related_name='businesses')
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_businesses')
-    
+    business_type = models.CharField(max_length=100)
+    contact_info = models.TextField()
+    neighborhood = models.ForeignKey('Neighborhood', on_delete=models.CASCADE)
+    liked_by = models.ManyToManyField(User, related_name='saved_businesses', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def total_likes(self):
+        return self.liked_by.count()
+
     def __str__(self):
-        return f"{self.name} - {self.neighborhood.name}"
+        return self.name

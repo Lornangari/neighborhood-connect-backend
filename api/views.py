@@ -4,6 +4,12 @@ from .serializers import RegisterSerializer, UserProfileSerializer, PostSerializ
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .serializers import BusinessSerializer
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
+
+
+
 
 
 class RegisterView(generics.CreateAPIView):
@@ -86,3 +92,27 @@ class BusinessViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(name__icontains=name)
         
         return queryset
+
+
+class BusinessViewSet(viewsets.ModelViewSet):
+    queryset = Business.objects.all()
+    serializer_class = BusinessSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def like(self, request, pk=None):
+        business = self.get_object()
+        business.liked_by.add(request.user)
+        return Response({'status': 'business liked'})
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def unlike(self, request, pk=None):
+        business = self.get_object()
+        business.liked_by.remove(request.user)
+        return Response({'status': 'business unliked'})
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def saved(self, request):
+        saved = Business.objects.filter(liked_by=request.user)
+        serializer = self.get_serializer(saved, many=True)
+        return Response(serializer.data)
