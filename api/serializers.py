@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Post, AnonymousPost, HelpExchange, Business
+from .models import User, Post, AnonymousPost, HelpExchange, Business, Comment
 from django.contrib.auth.password_validation import validate_password
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -62,3 +62,12 @@ class BusinessSerializer(serializers.ModelSerializer):
     class Meta:
         model = Business
         fields = '__all__'
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = '__all__'
+        read_only_fields = ['user', 'created_at']
