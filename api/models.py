@@ -86,7 +86,7 @@ class Business(models.Model):
     def __str__(self):
         return self.name
 
-    
+
 class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='comments')
@@ -95,3 +95,17 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.user.username} on {self.post.title}"
+    
+class Event(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    date = models.DateField()
+    time = models.TimeField()
+    location = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    organizer = models.ForeignKey(User, on_delete=models.CASCADE)
+    neighborhood = models.ForeignKey(Neighborhood, on_delete=models.CASCADE, related_name="events")
+
+    def __str__(self):
+        return f"{self.title} ({self.neighborhood.name})"

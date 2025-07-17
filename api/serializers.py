@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Post, AnonymousPost, HelpExchange, Business, Comment
+from .models import User, Post, AnonymousPost, HelpExchange, Business, Comment, Event
 from django.contrib.auth.password_validation import validate_password
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -71,3 +71,12 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = '__all__'
         read_only_fields = ['user', 'created_at']
+
+
+
+class EventSerializer(serializers.ModelSerializer):
+    organizer = serializers.ReadOnlyField(source='organizer.username')
+
+    class Meta:
+        model = Event
+        fields = '__all__'

@@ -1,9 +1,9 @@
-from .models import User, Post, AnonymousPost, HelpExchange, Business, Comment
+from .models import User, Post, AnonymousPost, HelpExchange, Business, Comment, Event
 from rest_framework import generics, permissions, viewsets
 from .serializers import RegisterSerializer, UserProfileSerializer, PostSerializer, AnonymousPostSerializer, HelpExchangeSerializer
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from .serializers import BusinessSerializer, CommentSerializer
+from .serializers import BusinessSerializer, CommentSerializer, EventSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
@@ -126,3 +126,12 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class EventViewSet(viewsets.ModelViewSet):
+    queryset = Event.objects.all().order_by('-date')
+    serializer_class = EventSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(organizer=self.request.user)

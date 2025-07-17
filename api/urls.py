@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import RegisterView, UserProfileView, PostViewSet, AnonymousPostViewSet, HelpExchangeViewSet, BusinessViewSet
-from .views import CommentViewSet
+from .views import CommentViewSet, EventViewSet
 
 
 router = DefaultRouter()
@@ -10,6 +10,8 @@ router.register(r'anonymous-posts', AnonymousPostViewSet, basename='anonymouspos
 router.register(r'help-exchange', HelpExchangeViewSet, basename='helpexchange')
 router.register(r'businesses', BusinessViewSet)
 router.register(r'comments', CommentViewSet)
+router.register(r'events', EventViewSet)
+
 
 
 
