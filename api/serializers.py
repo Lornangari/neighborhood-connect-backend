@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Post, AnonymousPost, HelpExchange
+from .models import User, Post, AnonymousPost, HelpExchange, Business
 from django.contrib.auth.password_validation import validate_password
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -54,3 +54,11 @@ class HelpExchangeSerializer(serializers.ModelSerializer):
         model = HelpExchange
         fields = ['id', 'type', 'category', 'title', 'description', 'contact_info', 'user', 'neighborhood', 'created_at']
         read_only_fields = ['id', 'user', 'neighborhood', 'created_at']
+
+
+class BusinessSerializer(serializers.ModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
+
+    class Meta:
+        model = Business
+        fields = '__all__'
