@@ -1,7 +1,8 @@
-from .models import User, Post, AnonymousPost
+from .models import User, Post, AnonymousPost, HelpExchange
 from rest_framework import generics, permissions, viewsets
-from .serializers import RegisterSerializer, UserProfileSerializer, PostSerializer, AnonymousPostSerializer
-
+from .serializers import RegisterSerializer, UserProfileSerializer, PostSerializer, AnonymousPostSerializer, HelpExchangeSerializer
+from rest_framework.filters import OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 class RegisterView(generics.CreateAPIView):
@@ -45,3 +46,18 @@ class AnonymousPostViewSet(viewsets.ModelViewSet):
             author=self.request.user,
             neighborhood=self.request.user.neighborhood
         )
+
+
+class HelpExchangeViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = HelpExchangeSerializer
+    queryset = HelpExchange.objects.all()
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['type', 'category']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        return HelpExchange.objects.filter(neighborhood=self.request.user.neighborhood)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user, neighborhood=self.request.user.neighborhood)
