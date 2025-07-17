@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import RegisterView, UserProfileView, PostViewSet, AnonymousPostViewSet, HelpExchangeViewSet, BusinessViewSet
 from .views import CommentViewSet, EventViewSet
+from .views import admin_summary
 
 
 router = DefaultRouter()
@@ -20,6 +21,7 @@ router.register(r'events', EventViewSet)
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('profile/', UserProfileView.as_view(), name='user-profile'),
+    path('admin-summary/', admin_summary, name='admin-summary'),
     path('', include(router.urls)),
 ]
 
