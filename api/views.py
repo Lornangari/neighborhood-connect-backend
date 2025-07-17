@@ -7,6 +7,8 @@ from .serializers import BusinessSerializer, CommentSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from .permissions import IsOwnerOrReadOnly
+
 
 
 
@@ -120,7 +122,7 @@ class BusinessViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all().order_by('-created_at')
     serializer_class = CommentSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
