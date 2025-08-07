@@ -6,10 +6,23 @@ from django.contrib.auth import get_user_model
 
 
 class User(AbstractUser):
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('user', 'User'),
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')  
     email = models.EmailField(unique=True)
     neighborhood = models.ForeignKey(
         'Neighborhood', on_delete=models.SET_NULL, null=True, blank=True, related_name='residents'
     )
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+
+    def __str__(self):
+        return self.user.username
+
 
 class Neighborhood(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -69,8 +82,6 @@ class HelpExchange(models.Model):
         return f"{self.type.capitalize()} - {self.title} by {self.user.username}"
 
 
-
-User = get_user_model()
 
 class Business(models.Model):
     name = models.CharField(max_length=100)

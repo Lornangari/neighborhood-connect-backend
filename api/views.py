@@ -1,6 +1,8 @@
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Post, AnonymousPost, HelpExchange, Business, Comment, Event
 from rest_framework import generics, permissions, viewsets
-from .serializers import RegisterSerializer, UserProfileSerializer, PostSerializer, AnonymousPostSerializer, HelpExchangeSerializer
+from .serializers import RegisterSerializer, NeighborhoodSerializer, UserProfileSerializer, PostSerializer, AnonymousPostSerializer, HelpExchangeSerializer
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .serializers import BusinessSerializer, CommentSerializer, EventSerializer
@@ -14,8 +16,20 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from .models import Post, Event, Neighborhood, Comment
-
-
+from .models import Neighborhood
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .serializers import UserSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .serializers import UserSerializer  
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import UserProfile
+from .serializers import UserProfileSerializer
 
 
 
@@ -25,12 +39,54 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 
 
-class UserProfileView(generics.RetrieveUpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = UserProfileSerializer
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['role'] = self.user.role  
+        return data
 
-    def get_object(self):
-        return self.request.user
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+class UserMeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def current_user_view(request):
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
+
+
+
+class NeighborhoodViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Neighborhood.objects.all()
+    serializer_class = NeighborhoodSerializer
+
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        serializer = UserProfileSerializer(profile)
+        return Response(serializer.data)
+
+    def put(self, request):
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        serializer = UserProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -140,6 +196,95 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_role_view(request):
+    user = request.user
+    return Response({
+        'username': user.username,
+        'is_superuser': user.is_superuser,
+        'is_staff': user.is_staff,
+        'email': user.email,
+    })
+
+
+# views.py
+# from rest_framework.decorators import api_view, permission_classes
+# from rest_framework.permissions import IsAuthenticated
+# from rest_framework.response import Response
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_user_info(request):
+#     return Response({
+#         'username': request.user.username,
+#         'role': request.user.profile.role  # or wherever your role is stored
+#     })
+
+
+
+
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def user_info(request):
+#     return Response({
+#         "username": request.user.username,
+#         "is_staff": request.user.is_staff,
+#         "email": request.user.email,
+        
+#     })
+
+
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_user_role(request):
+#     user = request.user
+#     return Response({
+#         "username": user.username,
+#         "is_admin": user.is_superuser,  
+#     })
+
+
+# from rest_framework.decorators import api_view, permission_classes
+# from rest_framework.permissions import IsAuthenticated
+# from rest_framework.response import Response
+
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def user_role_view(request):
+#     user = request.user
+#     return Response({
+#         "username": user.username,
+#         "is_admin": user.is_superuser
+#     })
+
+
+
+
+
+
+
 
 
 

@@ -1,7 +1,11 @@
 from rest_framework import serializers
-from .models import User, Post, AnonymousPost, HelpExchange, Business, Comment, Event
 from django.contrib.auth.password_validation import validate_password
+from .models import (
+    User, Neighborhood, Post, AnonymousPost, 
+    HelpExchange, Business, Comment, Event
+)
 
+# Register Serializer
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
@@ -20,14 +24,30 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
-
-class UserProfileSerializer(serializers.ModelSerializer):
+# User Serializer 
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'neighborhood']
-        read_only_fields = ['id', 'username', 'email']  
- 
+        fields = ['id', 'username', 'email', 'role', 'is_staff', 'is_superuser']
 
+# Neighborhood Serializer
+class NeighborhoodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Neighborhood
+        fields = ['id', 'name']
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+    avatar = serializers.ImageField(required=False)
+    # role = serializers.CharField(source='user.role')  # if you added a 'role' field
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'avatar']
+       
+
+# Post Serializer
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField(read_only=True)
     neighborhood = serializers.StringRelatedField(read_only=True)
@@ -38,6 +58,7 @@ class PostSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'author', 'neighborhood', 'created_at']
 
 
+# Anonymous Post Serializer
 class AnonymousPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnonymousPost
@@ -45,17 +66,21 @@ class AnonymousPostSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'neighborhood', 'created_at']
 
 
-
+# Help Exchange Serializer
 class HelpExchangeSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
     neighborhood = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = HelpExchange
-        fields = ['id', 'type', 'category', 'title', 'description', 'contact_info', 'user', 'neighborhood', 'created_at']
+        fields = [
+            'id', 'type', 'category', 'title', 'description', 
+            'contact_info', 'user', 'neighborhood', 'created_at'
+        ]
         read_only_fields = ['id', 'user', 'neighborhood', 'created_at']
 
 
+# Business Serializer
 class BusinessSerializer(serializers.ModelSerializer):
     total_likes = serializers.IntegerField(source='total_likes', read_only=True)
 
@@ -63,7 +88,7 @@ class BusinessSerializer(serializers.ModelSerializer):
         model = Business
         fields = '__all__'
 
-
+# Comment Serializer
 class CommentSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
 
@@ -72,8 +97,7 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['user', 'created_at']
 
-
-
+# Event Serializer
 class EventSerializer(serializers.ModelSerializer):
     organizer = serializers.ReadOnlyField(source='organizer.username')
 
