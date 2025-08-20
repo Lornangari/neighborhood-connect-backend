@@ -45,7 +45,21 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'email', 'avatar']
-       
+
+
+
+#AnnouncementSerializer
+from rest_framework import serializers
+from .models import Announcement
+
+class AnnouncementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Announcement
+        fields = '__all__'
+
+
+
+
 
 # Post Serializer
 class PostSerializer(serializers.ModelSerializer):
@@ -98,8 +112,11 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'created_at']
 
 # Event Serializer
+
+
 class EventSerializer(serializers.ModelSerializer):
     organizer = serializers.ReadOnlyField(source='organizer.username')
+    neighborhood = serializers.ReadOnlyField(source='neighborhood.id')
 
     class Meta:
         model = Event

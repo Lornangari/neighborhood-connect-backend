@@ -189,15 +189,38 @@ class CommentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+from .permissions import IsAdminUserOrReadOnly
 
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated, IsAdminUserOrReadOnly]
 
     def perform_create(self, serializer):
-        serializer.save(creator=self.request.user)
+        serializer.save(
+            organizer=self.request.user,
+            neighborhood=self.request.user.neighborhood  # assuming user has neighborhood FK
+        )
 
+#AnnouncementViewSet
 
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, SAFE_METHODS
+from .models import Announcement
+from .serializers import AnnouncementSerializer
+
+class IsAdminOrReadOnly(IsAuthenticated):
+    def has_permission(self, request, view):
+        # Read permissions allowed to any authenticated user
+        if request.method in SAFE_METHODS:
+            return True
+        # Write permissions only for admin
+        return request.user and request.user.is_staff
+
+class AnnouncementViewSet(viewsets.ModelViewSet):
+    queryset = Announcement.objects.all().order_by('-created_at')
+    serializer_class = AnnouncementSerializer
+    permission_classes = [IsAdminOrReadOnly]
 
 
 

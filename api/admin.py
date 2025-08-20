@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User
+from .models import User, Event, Announcement
 from .forms import CustomUserCreationForm
 
 class UserAdmin(BaseUserAdmin):
@@ -21,5 +21,20 @@ class UserAdmin(BaseUserAdmin):
     list_display = ("username", "email", "role", "is_staff", "is_superuser")
     list_filter = ("role", "is_staff")
 
-
 admin.site.register(User, UserAdmin)
+
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
+    list_display = ("title", "date", )
+    search_fields = ("title", "description")
+    list_filter = ("date", )
+
+
+
+
+#Announcement
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ("title", "created_at")   
+    search_fields = ("title", "message")     
+    ordering = ("-created_at",)

@@ -2,13 +2,15 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import CustomTokenObtainPairView
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import RegisterView,NeighborhoodViewSet, UserProfileView, PostViewSet, AnonymousPostViewSet, HelpExchangeViewSet, BusinessViewSet
+from .views import RegisterView,NeighborhoodViewSet, UserProfileView, AnnouncementViewSet, PostViewSet, AnonymousPostViewSet, HelpExchangeViewSet, BusinessViewSet
 from .views import CommentViewSet, EventViewSet
 from .views import UserMeView
 
 
 router = DefaultRouter()
 router.register(r'neighborhoods', NeighborhoodViewSet)
+router.register(r'announcements', AnnouncementViewSet, basename='announcement')
+
 router.register(r'posts', PostViewSet, basename='post')
 router.register(r'anonymous-posts', AnonymousPostViewSet, basename='anonymouspost')
 router.register(r'help-exchange', HelpExchangeViewSet, basename='helpexchange')
