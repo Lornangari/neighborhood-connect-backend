@@ -1,15 +1,24 @@
 # Neighborhood Connect - Backend
 
-This is the Django + Django REST Framework backend for the Neighborhood Connect project.
+## Overview  
+This is the backend of **Neighborhood Connect**, a platform designed to bring communities together. It provides RESTful APIs for user authentication, neighborhood management, announcements, and events.  
 
-## Features
-- Django REST API
-- CORS enabled for frontend integration
-- App structure ready for user authentication, posts, and neighborhood features
+## Features  
+-  User authentication (sign up, login, logout)  
+-  Create and join neighborhoods  
+-  Post and manage announcements & events  
+-  Comments and interactions on posts  
+-  Role-based access control (Admins & Residents)  
 
-## Setup Instructions
+## Tech Stack  
+- Django  
+- Django REST Framework (DRF)  
+- PostgreSQL  
+- JWT Authentication 
 
-### 1. Create Virtual Environment
-```bash
-python -m venv env
-source env\Scripts\activate 
+
+## Installation & Setup  
+1. Clone the repo  
+   ```bash
+   git clone https://github.com/Lornangari/neighborhood-connect-backend.git
+   cd neighborhood-connect-backend
