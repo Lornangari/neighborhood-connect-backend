@@ -2,8 +2,9 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import (
     User, Neighborhood, Post, AnonymousPost, 
-    HelpExchange, Business, Comment, Event
+    Business, Comment, Event
 )
+from .models import HelpPost, Reply
 
 # Register Serializer
 class RegisterSerializer(serializers.ModelSerializer):
@@ -59,6 +60,84 @@ class AnnouncementSerializer(serializers.ModelSerializer):
 
 
 
+# Help-exchange serializer
+# class ReplySerializer(serializers.ModelSerializer):
+#     user = serializers.ReadOnlyField(source='user.username')
+
+#     class Meta:
+#         model = Reply
+#         fields = ('id', 'user', 'message', 'created_at')
+
+
+# class HelpPostSerializer(serializers.ModelSerializer):
+#     user = serializers.ReadOnlyField(source='user.username')
+#     replies = ReplySerializer(many=True, read_only=True)
+
+#     class Meta:
+#         model = HelpPost
+#         fields = ('id', 'user', 'type', 'title', 'description', 'created_at', 'replies')
+
+
+
+# serializers.py
+
+from rest_framework import serializers
+from .models import HelpPost, Reply, UserProfile
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['avatar']
+
+class ReplySerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.username', read_only=True)
+    profile = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Reply
+        fields = ['id', 'user', 'profile', 'message', 'created_at']
+
+    def get_profile(self, obj):
+        profile = getattr(obj.user, 'userprofile', None)
+        if profile and profile.avatar:
+            return profile.avatar.url
+        return None
+
+# class HelpPostSerializer(serializers.ModelSerializer):
+#     user = serializers.CharField(source='user.username', read_only=True)
+#     profile = serializers.SerializerMethodField()
+#     replies = ReplySerializer(many=True, read_only=True)
+
+#     class Meta:
+#         model = HelpPost
+#         fields = ['id', 'user', 'profile', 'type', 'title', 'description', 'created_at', 'replies']
+
+#     def get_profile(self, obj):
+#         profile = getattr(obj.user, 'userprofile', None)
+#         if profile and profile.avatar:
+#             return profile.avatar.url
+#         return None
+
+# updated help post serializer
+class HelpPostSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.username')
+    replies = ReplySerializer(many=True, read_only=True)
+    reply_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HelpPost
+        fields = ('id', 'user', 'type', 'title', 'description', 'created_at', 'replies', 'reply_count')
+
+    def get_reply_count(self, obj):
+        return obj.replies.count()
+    
+    def get_profile(self, obj):
+         profile = getattr(obj.user, 'userprofile', None)
+         if profile and profile.avatar:
+            return profile.avatar.url
+         return None
+
+
 
 
 # Post Serializer
@@ -81,17 +160,17 @@ class AnonymousPostSerializer(serializers.ModelSerializer):
 
 
 # Help Exchange Serializer
-class HelpExchangeSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField(read_only=True)
-    neighborhood = serializers.StringRelatedField(read_only=True)
+# class HelpExchangeSerializer(serializers.ModelSerializer):
+#     user = serializers.StringRelatedField(read_only=True)
+#     neighborhood = serializers.StringRelatedField(read_only=True)
 
-    class Meta:
-        model = HelpExchange
-        fields = [
-            'id', 'type', 'category', 'title', 'description', 
-            'contact_info', 'user', 'neighborhood', 'created_at'
-        ]
-        read_only_fields = ['id', 'user', 'neighborhood', 'created_at']
+#     class Meta:
+#         model = HelpExchange
+#         fields = [
+#             'id', 'type', 'category', 'title', 'description', 
+#             'contact_info', 'user', 'neighborhood', 'created_at'
+#         ]
+#         read_only_fields = ['id', 'user', 'neighborhood', 'created_at']
 
 
 # Business Serializer

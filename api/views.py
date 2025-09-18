@@ -1,8 +1,8 @@
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, Post, AnonymousPost, HelpExchange, Business, Comment, Event
+from .models import User, Post, AnonymousPost, Business, Comment, Event
 from rest_framework import generics, permissions, viewsets
-from .serializers import RegisterSerializer, NeighborhoodSerializer, UserProfileSerializer, PostSerializer, AnonymousPostSerializer, HelpExchangeSerializer
+from .serializers import RegisterSerializer, NeighborhoodSerializer, UserProfileSerializer, PostSerializer, AnonymousPostSerializer
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .serializers import BusinessSerializer, CommentSerializer, EventSerializer
@@ -119,19 +119,6 @@ class AnonymousPostViewSet(viewsets.ModelViewSet):
         )
 
 
-class HelpExchangeViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = HelpExchangeSerializer
-    queryset = HelpExchange.objects.all()
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['type', 'category']
-    ordering = ['-created_at']
-
-    def get_queryset(self):
-        return HelpExchange.objects.filter(neighborhood=self.request.user.neighborhood)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user, neighborhood=self.request.user.neighborhood)
 
 
 class BusinessViewSet(viewsets.ModelViewSet):
@@ -225,10 +212,49 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
 
 
 
+# helpExchange permissions
+from rest_framework import permissions
+
+class IsOwnerOrAdmin(permissions.BasePermission):
+    """
+    Custom permission to allow only owners or admins to edit/delete.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        # Only the owner or admin can edit/delete
+        return obj.user == request.user or request.user.role == "admin"
 
 
+#helpExchange
+from rest_framework import viewsets, permissions
+from .models import HelpPost, Reply
+from .serializers import HelpPostSerializer, ReplySerializer
+
+class HelpPostViewSet(viewsets.ModelViewSet):
+    queryset = HelpPost.objects.all().order_by('-created_at')
+    serializer_class = HelpPostSerializer
+    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsOwnerOrAdmin]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
+# replyviewset
+class ReplyViewSet(viewsets.ModelViewSet):
+    serializer_class = ReplySerializer
+    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsOwnerOrAdmin]
+
+    def get_queryset(self):
+        return Reply.objects.filter(post_id=self.kwargs['post_pk']).order_by('created_at')
+
+    def perform_create(self, serializer):
+        post_id = self.kwargs['post_pk']
+        serializer.save(user=self.request.user, post_id=post_id)
 
 
 
@@ -250,65 +276,6 @@ def user_role_view(request):
     })
 
 
-# views.py
-# from rest_framework.decorators import api_view, permission_classes
-# from rest_framework.permissions import IsAuthenticated
-# from rest_framework.response import Response
-
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def get_user_info(request):
-#     return Response({
-#         'username': request.user.username,
-#         'role': request.user.profile.role  # or wherever your role is stored
-#     })
-
-
-
-
-
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def user_info(request):
-#     return Response({
-#         "username": request.user.username,
-#         "is_staff": request.user.is_staff,
-#         "email": request.user.email,
-        
-#     })
-
-
-
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def get_user_role(request):
-#     user = request.user
-#     return Response({
-#         "username": user.username,
-#         "is_admin": user.is_superuser,  
-#     })
-
-
-# from rest_framework.decorators import api_view, permission_classes
-# from rest_framework.permissions import IsAuthenticated
-# from rest_framework.response import Response
-
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def user_role_view(request):
-#     user = request.user
-#     return Response({
-#         "username": user.username,
-#         "is_admin": user.is_superuser
-#     })
-
-
-
-
-
-
-
-
 
 
 @api_view(['GET'])
@@ -326,3 +293,5 @@ def admin_summary(request):
     }
 
     return Response(data)
+
+

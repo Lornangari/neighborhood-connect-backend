@@ -41,7 +41,46 @@ class Announcement(models.Model):
 
     def __str__(self):
         return self.title
+    
 
+
+# help-exchange model
+class HelpPost(models.Model):
+    HELP_TYPE_CHOICES = (
+        ('ask', 'Ask for Help'),
+        ('offer', 'Offer Help'),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="help_posts"
+    )
+    type = models.CharField(max_length=10, choices=HELP_TYPE_CHOICES)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.get_type_display()} - {self.title}"
+
+
+class Reply(models.Model):
+    post = models.ForeignKey(
+        HelpPost,
+        on_delete=models.CASCADE,
+        related_name="replies"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="help_replies"
+    )
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Reply by {self.user.username} on {self.post.title}"
 
 
 
@@ -69,33 +108,6 @@ class AnonymousPost(models.Model):
     def __str__(self):
         return f"AnonymousPost in {self.neighborhood.name} at {self.created_at.strftime('%Y-%m-%d %H:%M')}"
 
-
-class HelpExchange(models.Model):
-    EXCHANGE_TYPE_CHOICES = [
-        ('offer', 'Offer'),
-        ('request', 'Request'),
-    ]
-
-    CATEGORY_CHOICES = [
-        ('tutoring', 'Tutoring'),
-        ('repairs', 'Repairs'),
-        ('childcare', 'Childcare'),
-        ('moving', 'Moving Help'),
-        ('tech', 'Tech Support'),
-        ('other', 'Other'),
-    ]
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='exchanges')
-    neighborhood = models.ForeignKey(Neighborhood, on_delete=models.CASCADE, related_name='exchanges')
-    type = models.CharField(max_length=10, choices=EXCHANGE_TYPE_CHOICES)
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
-    title = models.CharField(max_length=255)
-    description = models.TextField()
-    contact_info = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.type.capitalize()} - {self.title} by {self.user.username}"
 
 
 

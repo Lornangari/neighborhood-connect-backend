@@ -6,12 +6,33 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        # Safe methods like GET are allowed
+        
         if request.method in permissions.SAFE_METHODS:
             return True
 
         # Write permissions only for the owner
         return obj.user == request.user
+
+
+# help-post
+class IsOwnerOrAdminOrReadOnly(permissions.BasePermission):
+    """
+    Allow read for authenticated users.
+    Allow write (PUT/DELETE/PATCH) only if request.user is the object's owner or is_staff.
+    """
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        return getattr(obj, 'user', None) == request.user or request.user.is_staff
+
+
+
+
 
 
 # events

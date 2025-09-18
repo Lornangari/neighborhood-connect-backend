@@ -38,3 +38,19 @@ class AnnouncementAdmin(admin.ModelAdmin):
     list_display = ("title", "created_at")   
     search_fields = ("title", "message")     
     ordering = ("-created_at",)
+
+
+# help-exchange
+from django.contrib import admin
+from .models import HelpPost, Reply
+
+@admin.register(HelpPost)
+class HelpPostAdmin(admin.ModelAdmin):
+    list_display = ('title', 'type', 'user', 'created_at')
+    list_filter = ('type', 'created_at')
+    search_fields = ('title', 'description', 'user__username')
+
+@admin.register(Reply)
+class ReplyAdmin(admin.ModelAdmin):
+    list_display = ('post', 'user', 'created_at')
+    search_fields = ('message', 'user__username', 'post__title')
