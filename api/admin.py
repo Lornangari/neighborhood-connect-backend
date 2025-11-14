@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Event, Announcement
+from .models import User, Event, Announcement, Business
 from .forms import CustomUserCreationForm
 
 class UserAdmin(BaseUserAdmin):
@@ -54,3 +54,45 @@ class HelpPostAdmin(admin.ModelAdmin):
 class ReplyAdmin(admin.ModelAdmin):
     list_display = ('post', 'user', 'created_at')
     search_fields = ('message', 'user__username', 'post__title')
+
+
+# business
+@admin.register(Business)
+class BusinessAdmin(admin.ModelAdmin):
+    list_display = ("name", "category", "contact_info", "created_at")
+    list_filter = ("category",)
+    search_fields = ("name", "description", "contact_info")
+
+
+# Anonymous-post
+from .models import AnonymousPost, AnonymousComment
+
+@admin.register(AnonymousPost)
+class AnonymousPostAdmin(admin.ModelAdmin):
+    list_display = ("id", "text", "created_at")
+    search_fields = ("text",)
+
+@admin.register(AnonymousComment)
+class AnonymousCommentAdmin(admin.ModelAdmin):
+    list_display = ("id", "post", "text", "created_at")
+    search_fields = ("text",)
+
+
+# posts
+from django.contrib import admin
+from .models import Post, Comment
+
+# Allow editing comments directly inside posts
+class CommentInline(admin.TabularInline):
+    model = Comment
+    extra = 1  
+
+# Customize the Post admin
+@admin.register(Post)
+class PostAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "message", "likes", "created_at")  # columns shown
+    list_filter = ("user", "created_at")
+    search_fields = ("user__username", "message")  # enable search
+    inlines = [CommentInline]  # show comments inline
+    actions = ["delete_selected"]  
+

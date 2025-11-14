@@ -87,111 +87,95 @@ class UserProfileView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
+# PostViewset
+
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import Post, Comment
+from .serializers import PostSerializer, CommentSerializer
 
 
 class PostViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
-
-    def get_queryset(self):
-        # Show only posts from the user's neighborhood
-        user = self.request.user
-        return Post.objects.filter(neighborhood=user.neighborhood).order_by('-created_at')
-
-    def perform_create(self, serializer):
-        # Automatically assign the post to the logged-in user and their neighborhood
-        serializer.save(author=self.request.user, neighborhood=self.request.user.neighborhood)
-
-
-class AnonymousPostViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = AnonymousPostSerializer
-
-    def get_queryset(self):
-        return AnonymousPost.objects.filter(
-            neighborhood=self.request.user.neighborhood
-        ).order_by('-created_at')
-
-    def perform_create(self, serializer):
-        serializer.save(
-            author=self.request.user,
-            neighborhood=self.request.user.neighborhood
-        )
-
-
-
-
-class BusinessViewSet(viewsets.ModelViewSet):
-    queryset = Business.objects.all()
-    serializer_class = BusinessSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-    def get_queryset(self):
-        queryset = Business.objects.all()
-        neighborhood = self.request.query_params.get('neighborhood')
-        business_type = self.request.query_params.get('type')
-        name = self.request.query_params.get('name')
-        
-        if neighborhood:
-            queryset = queryset.filter(neighborhood__id=neighborhood)
-        if business_type:
-            queryset = queryset.filter(business_type__icontains=business_type)
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-        
-        return queryset
-
-
-class BusinessViewSet(viewsets.ModelViewSet):
-    queryset = Business.objects.all()
-    serializer_class = BusinessSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def like(self, request, pk=None):
-        business = self.get_object()
-        business.liked_by.add(request.user)
-        return Response({'status': 'business liked'})
-
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def unlike(self, request, pk=None):
-        business = self.get_object()
-        business.liked_by.remove(request.user)
-        return Response({'status': 'business unliked'})
-
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    def saved(self, request):
-        saved = Business.objects.filter(liked_by=request.user)
-        serializer = self.get_serializer(saved, many=True)
-        return Response(serializer.data)
-    
-class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all().order_by('-created_at')
-    serializer_class = CommentSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-from .permissions import IsAdminUserOrReadOnly
+    @action(detail=True, methods=['post'])
+    def like(self, request, pk=None):
+        post = self.get_object()
+        post.likes += 1
+        post.save()
+        return Response({'likes': post.likes})
 
-class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
-    serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated, IsAdminUserOrReadOnly]
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(
-            organizer=self.request.user,
-            neighborhood=self.request.user.neighborhood  # assuming user has neighborhood FK
-        )
+        serializer.save(user=self.request.user)
+
+
+# AnonymousPostsViewset
+
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import AnonymousPost, AnonymousComment
+from .serializers import AnonymousPostSerializer, CommentSerializer
+
+class AnonymousPostViewSet(viewsets.ModelViewSet):
+    queryset = AnonymousPost.objects.all().order_by("-created_at")
+    serializer_class = AnonymousPostSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    @action(detail=True, methods=["POST"], permission_classes=[permissions.IsAuthenticated])
+    def like(self, request, pk=None):
+        post = self.get_object()
+        user = request.user
+        if post.likes.filter(id=user.id).exists():
+            post.likes.remove(user)
+            liked = False
+        else:
+            post.likes.add(user)
+            liked = True
+        post.save()
+        return Response({"liked": liked, "likes_count": post.likes.count()}, status=status.HTTP_200_OK)
+
+class AnonymousCommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        post_id = self.kwargs.get("post_pk")
+        return AnonymousComment.objects.filter(post_id=post_id).order_by("created_at")
+
+    def perform_create(self, serializer):
+        post_id = self.kwargs.get("post_pk")
+        post = AnonymousPost.objects.get(pk=post_id)
+        serializer.save(post=post)
+
+
+# Eventviewset
+class EventViewSet(viewsets.ModelViewSet):
+    queryset = Event.objects.all().order_by('-date')
+    serializer_class = EventSerializer
+
+    def get_permissions(self):
+        if self.request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
+            return [permissions.IsAdminUser()]  # Only admin can modify
+        return [permissions.AllowAny()]  # Everyone can view
+
 
 #AnnouncementViewSet
-
-from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, SAFE_METHODS
 from .models import Announcement
 from .serializers import AnnouncementSerializer
@@ -208,8 +192,6 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
     queryset = Announcement.objects.all().order_by('-created_at')
     serializer_class = AnnouncementSerializer
     permission_classes = [IsAdminOrReadOnly]
-
-
 
 
 # helpExchange permissions
@@ -257,6 +239,27 @@ class ReplyViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user, post_id=post_id)
 
 
+# Business viewset
+from rest_framework import viewsets, permissions
+from .models import Business
+from .serializers import BusinessSerializer
+
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """
+    Custom permission to only allow admins to edit.
+    """
+
+    def has_permission(self, request, view):
+        # Read-only for everyone
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        # Only admins can POST/PUT/DELETE
+        return request.user.is_staff
+
+class BusinessViewSet(viewsets.ModelViewSet):
+    queryset = Business.objects.all().order_by("-created_at")
+    serializer_class = BusinessSerializer
+    permission_classes = [IsAdminOrReadOnly]
 
 
 

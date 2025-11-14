@@ -83,69 +83,94 @@ class Reply(models.Model):
         return f"Reply by {self.user.username} on {self.post.title}"
 
 
-
-
-
-
-
-class Post(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='posts')
-    neighborhood = models.ForeignKey(Neighborhood, on_delete=models.CASCADE, related_name='posts')
-    title = models.CharField(max_length=200)
-    content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.title} - {self.author.username}"
-
-
-class AnonymousPost(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='anonymous_posts')
-    neighborhood = models.ForeignKey(Neighborhood, on_delete=models.CASCADE, related_name='anonymous_posts')
-    message = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"AnonymousPost in {self.neighborhood.name} at {self.created_at.strftime('%Y-%m-%d %H:%M')}"
-
-
-
-
+# business
 class Business(models.Model):
-    name = models.CharField(max_length=100)
-    business_type = models.CharField(max_length=100)
-    contact_info = models.TextField()
-    neighborhood = models.ForeignKey('Neighborhood', on_delete=models.CASCADE)
-    liked_by = models.ManyToManyField(User, related_name='saved_businesses', blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    CATEGORY_CHOICES = [
+        ("restaurant", "Restaurant"),
+        ("retail", "Retail"),
+        ("service", "Service"),
+        ("other", "Other"),
+    ]
 
-    def total_likes(self):
-        return self.liked_by.count()
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default="other")
+    image = models.ImageField(upload_to="business_images/", blank=True, null=True)
+    contact_info = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
 
 
-class Comment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='comments')
-    content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+# events
 
-    def __str__(self):
-        return f"{self.user.username} on {self.post.title}"
-    
 class Event(models.Model):
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=200)
     description = models.TextField()
     date = models.DateField()
-    time = models.TimeField()
     location = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    organizer = models.ForeignKey(User, on_delete=models.CASCADE)
-    neighborhood = models.ForeignKey(Neighborhood, on_delete=models.CASCADE, related_name="events", null=True, 
-    blank=True)
+    image = models.ImageField(upload_to="event_images/", blank=True, null=True)
 
     def __str__(self):
-        return f"{self.title} ({self.neighborhood.name})"
+        return self.title
+
+
+# Anonymousposts
+
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+
+class AnonymousPost(models.Model):
+    text = models.TextField()
+    image = models.ImageField(upload_to="anonymous_posts/", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    likes = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, 
+        related_name="liked_anonymous_posts", 
+        blank=True
+    )
+
+    def __str__(self):
+        return f"Post {self.id} - {self.text[:20]}"
+
+class AnonymousComment(models.Model):
+    post = models.ForeignKey(AnonymousPost, related_name="comments", on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comment {self.id} on Post {self.post.id}"
+
+
+
+# posts model
+#from django.contrib.auth.models import User
+
+class Post(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    message = models.TextField()
+    likes = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username if self.user else 'Unknown User'}: {self.message[:20]}"
+
+class Comment(models.Model):
+    post = models.ForeignKey(Post, related_name="comments", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username}: {self.text[:20]}"
+
+
+
+
+
+
+
+
+    
