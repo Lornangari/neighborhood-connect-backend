@@ -89,12 +89,46 @@ class UserProfileView(APIView):
 
 # PostViewset
 
+# from rest_framework import viewsets, permissions
+# from rest_framework.decorators import action
+# from rest_framework.response import Response
+# from .models import Post, Comment
+# from .serializers import PostSerializer, CommentSerializer
+
+
+# class PostViewSet(viewsets.ModelViewSet):
+#     queryset = Post.objects.all().order_by('-created_at')
+#     serializer_class = PostSerializer
+#     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+#     def perform_create(self, serializer):
+#         serializer.save(user=self.request.user)
+
+#     @action(detail=True, methods=['post'])
+#     def like(self, request, pk=None):
+#         post = self.get_object()
+#         post.likes += 1
+#         post.save()
+#         return Response({'likes': post.likes})
+
+
+# class CommentViewSet(viewsets.ModelViewSet):
+#     queryset = Comment.objects.all()
+#     serializer_class = CommentSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     def perform_create(self, serializer):
+#         serializer.save(user=self.request.user)
+
+
+
+
+# posts viewset
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Post, Comment
 from .serializers import PostSerializer, CommentSerializer
-
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all().order_by('-created_at')
@@ -103,6 +137,16 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+        User = get_user_model()
+        # Notify all users *except* the one who created the post
+        users = User.objects.exclude(id=self.request.user.id)
+
+        for user in users:
+            Notification.objects.create(
+                user=user,
+                message=f"{self.request.user.username} posted a new update."
+            )
 
     @action(detail=True, methods=['post'])
     def like(self, request, pk=None):
@@ -115,10 +159,20 @@ class PostViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        comment = serializer.save(user=self.request.user)
+        # serializer.save(user=self.request.user)
+
+        post_author = comment.post.user
+        # Notify post author only if the commenter is not the author
+        if post_author != self.request.user:
+            Notification.objects.create(
+                user=post_author,
+                message=f"{self.request.user.username} commented on your post."
+            )
+
 
 
 # AnonymousPostsViewset
@@ -165,15 +219,41 @@ class AnonymousCommentViewSet(viewsets.ModelViewSet):
 
 
 # Eventviewset
+from rest_framework import viewsets, permissions
+from django.contrib.auth import get_user_model
+from .models import Event, Notification
+from .serializers import EventSerializer
+
+User = get_user_model()
+
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all().order_by('-date')
     serializer_class = EventSerializer
 
     def get_permissions(self):
         if self.request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
-            return [permissions.IsAdminUser()]  # Only admin can modify
-        return [permissions.AllowAny()]  # Everyone can view
+            return [permissions.IsAdminUser()]  
+        return [permissions.AllowAny()]  
 
+    def perform_create(self, serializer):
+        # Save the event first
+        event = serializer.save()
+
+        # Notify all users, including the admin
+        users_to_notify = User.objects.all()  
+        notifications = [
+            Notification(
+                user=user,
+                message=f"New event: {event.title}",
+                related_event=event  
+            )
+            for user in users_to_notify
+        ]
+        Notification.objects.bulk_create(notifications)
+
+    
+    
+    
 
 #AnnouncementViewSet
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, SAFE_METHODS
@@ -192,7 +272,17 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
     queryset = Announcement.objects.all().order_by('-created_at')
     serializer_class = AnnouncementSerializer
     permission_classes = [IsAdminOrReadOnly]
+    
 
+    def perform_create(self, serializer):
+        announcement = serializer.save()
+
+        users_to_notify = User.objects.exclude(id=self.request.user.id)
+        notifications = [
+            Notification(user=user, message=f"New announcement: {announcement.title}")
+            for user in users_to_notify
+        ]
+        Notification.objects.bulk_create(notifications)
 
 # helpExchange permissions
 from rest_framework import permissions
@@ -260,6 +350,53 @@ class BusinessViewSet(viewsets.ModelViewSet):
     queryset = Business.objects.all().order_by("-created_at")
     serializer_class = BusinessSerializer
     permission_classes = [IsAdminOrReadOnly]
+
+
+
+
+
+# notification viewset
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import Notification
+from .serializers import NotificationSerializer
+
+class IsOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.user == request.user
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]  # only authenticated access
+
+    def get_queryset(self):
+        # user only sees their own notifications
+        return Notification.objects.filter(user=self.request.user).order_by("-created_at")
+
+    def perform_create(self, serializer):
+        # create notifications server-side (only allow admin or server logic)
+        serializer.save()
+
+    @action(detail=True, methods=["post"])
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        if notification.user != request.user:
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+        notification.unread = False
+        notification.save()
+        return Response({"status": "ok", "id": notification.id})
+
+    @action(detail=False, methods=["post"])
+    def mark_all_read(self, request):
+        qs = self.get_queryset().filter(unread=True)
+        updated = qs.update(unread=False)
+        return Response({"status": "ok", "updated": updated})
+
+
+
+
+
 
 
 

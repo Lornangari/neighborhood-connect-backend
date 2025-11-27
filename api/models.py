@@ -168,6 +168,24 @@ class Comment(models.Model):
 
 
 
+# notification model
+# User = settings.AUTH_USER_MODEL
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    verb = models.CharField(max_length=140)          
+    description = models.TextField(blank=True)      
+    url = models.CharField(max_length=512, blank=True, null=True)  
+    unread = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user}: {self.verb[:40]} ({'unread' if self.unread else 'read'})"
+
+
 
 
 

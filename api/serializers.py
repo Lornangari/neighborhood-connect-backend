@@ -102,15 +102,34 @@ class HelpPostSerializer(serializers.ModelSerializer):
 
 # Post Serializer
 
+# class CommentSerializer(serializers.ModelSerializer):
+#     user = serializers.StringRelatedField(read_only=True)
+#     post = serializers.PrimaryKeyRelatedField(queryset=Post.objects.all(), write_only=True)
+
+#     class Meta:
+#         model = Comment
+#         fields = ['id', 'user', 'text', 'created_at', 'post']
+
+
+
+
+# class PostSerializer(serializers.ModelSerializer):
+#     user = serializers.StringRelatedField(read_only=True)
+#     comments = CommentSerializer(many=True, read_only=True)
+
+#     class Meta:
+#         model = Post
+#         fields = ['id', 'user', 'message', 'likes', 'created_at', 'comments']
+
+
+
 class CommentSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
     post = serializers.PrimaryKeyRelatedField(queryset=Post.objects.all(), write_only=True)
 
     class Meta:
         model = Comment
-        fields = ['id', 'user', 'text', 'created_at', 'post']
-
-
+        fields = ['id', 'user', 'text', 'created_at', 'post']  # removed trailing comma
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -119,7 +138,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ['id', 'user', 'message', 'likes', 'created_at', 'comments']
+        fields = ['id', 'user', 'message', 'likes', 'created_at', 'comments']  # removed trailing comma
 
 
 
@@ -162,3 +181,15 @@ class AnonymousPostSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.likes.filter(id=request.user.id).exists()
         return False
+
+
+# notification
+
+from rest_framework import serializers
+from .models import Notification
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ["id", "verb", "description", "url", "unread", "created_at"]
+        read_only_fields = ["id", "created_at"]

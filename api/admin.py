@@ -96,3 +96,12 @@ class PostAdmin(admin.ModelAdmin):
     inlines = [CommentInline]  # show comments inline
     actions = ["delete_selected"]  
 
+
+# notification
+from .models import Notification
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("user", "verb", "unread", "created_at")
+    list_filter = ("unread",)
+    search_fields = ("verb", "description", "user__username")
